@@ -3,7 +3,7 @@
 #include "ugl/draw.h"
 #include "ugl/math.h"
 
-#define N 4
+#define N 8
 #define F 20
 
 #define PALSZ 512
