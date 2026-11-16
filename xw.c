@@ -1,8 +1,6 @@
 #include "ugl/fb.h"
 #include "ugl/input.h"
 
-#include <stdio.h>
-
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
@@ -15,6 +13,16 @@
 
 #ifdef HAVE_XINPUT2
 #include <X11/extensions/XInput2.h>
+#endif
+
+#ifdef NDEBUG
+#define hwerr() (-1)
+#else
+#include <stdio.h>
+#define hwerr(rc) ({\
+	fprintf(stderr, "libugl:%s:%d: internal error\n", \
+		__func__, __LINE__);\
+	-1;})
 #endif
 
 struct hw {
@@ -47,8 +55,7 @@ static int xwchkbpp(struct fb* fb, int depth)
 		}
 	}
 	XFree(formats);
-	printf("Only 32bpp TrueColor mode is supported\n");
-	return -1;
+	return hwerr();
 }
 
 static int xwfullscreen(struct fb *fb)
@@ -84,11 +91,11 @@ static int xwopenbackbuf(struct fb *fb)
 #ifdef HAVE_XSHM
 	hw->shminfo.shmid = shmget(IPC_PRIVATE, fb->pitch*fb->h*sizeof(*fb->pixbuf), IPC_CREAT | 0777);
 	if (hw->shminfo.shmid < 0)
-		return -1;
+		return hwerr();
 
 	hw->shminfo.shmaddr = shmat(hw->shminfo.shmid, 0, 0);
 	if (hw->shminfo.shmaddr == (char *)-1)
-		return -1;
+		return hwerr();
 
 	hw->shminfo.readOnly = False;
 	XShmAttach(hw->display, &hw->shminfo);
@@ -127,14 +134,12 @@ static int xiopen(struct fb *fb)
 	unsigned char mask[(XI_LASTEVENT + 7)/8] = {0};
 	struct hw *hw = fb->hw;
 
-	if (!XQueryExtension(hw->display, "XInputExtension", &xi_opcode, &event, &error)) {
-		printf("XInputExtension is not available\n");
-		return -1;
-	}
-	if (XIQueryVersion(hw->display, &major, &minor) == BadRequest) {
-		printf("XI2 is not supported, server supports version %d.%d only\n", major, minor);
-		return -1;
-	}
+	if (!XQueryExtension(hw->display, "XInputExtension", &xi_opcode, &event, &error))
+		return hwerr();
+
+	if (XIQueryVersion(hw->display, &major, &minor) == BadRequest)
+		return hwerr();
+
 	XISetMask(mask, XI_RawMotion);
 	evmask[0].deviceid = XIAllMasterDevices;
 	evmask[0].mask_len = sizeof(mask);
@@ -154,12 +159,12 @@ int hwopen(struct fb *fb)
 
 	hw = fb->hw = malloc(sizeof(*fb->hw));
 	if (!fb->hw)
-		return -1;
+		return hwerr();
 	memset(hw, 0, sizeof(*hw));
 
 	hw->display = XOpenDisplay(0);
 	if (!hw->display)
-		return -1;
+		return hwerr();
 	screen = XDefaultScreen(hw->display);
 
 	if (!fb->w)
@@ -169,8 +174,8 @@ int hwopen(struct fb *fb)
 	fb->pitch = fb->w;
 
 	hw->depth = XDefaultDepth(hw->display, screen);
-	if (xwchkbpp(fb, hw->depth) == -1)
-		return -1;
+	if (xwchkbpp(fb, hw->depth))
+		return hwerr();
 
 	attr.border_pixel = 0;
 	attr.background_pixel = 0;

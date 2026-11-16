@@ -11,18 +11,13 @@
 #endif
 
 #ifdef NDEBUG
-#define RETURN_IF(rc) if (rc) return -1
-#define RETURN_IF_FAILED(rc) if (rc < 0) return -1
+#define hwerr(rc) ((rc) ? (rc) : -1)
 #else
 #include <stdio.h>
-#define RETURN_IF(rc) if (rc) {\
-	printf("%s:%d: %s(): internal error\n", __FILE__, __LINE__,__func__);\
-	return -1;\
-}
-#define RETURN_IF_FAILED(rc) if (rc < 0) {\
-	printf("%s:%d: %s(): error code: %hu\n", __FILE__, __LINE__,__func__, (unsigned short)rc);\
-	return -1;\
-}
+#define hwerr(rc) ({\
+	fprintf(stderr, "libugl:%s:%d: internal error: %x\n", \
+		__func__, __LINE__, rc);\
+	(rc) ? (rc) : -1;})
 #endif
 
 struct hw {
@@ -68,7 +63,8 @@ static inline int riopen(struct fb *fb, int page, int usage)
 	rid.dwFlags = 0; /* RIDEV_NOLEGACY */
 	rid.hwndTarget = hw->win;
 	rc = RegisterRawInputDevices(&rid, 1, sizeof(rid));
-	RETURN_IF(rc == FALSE);
+	if (rc == FALSE)
+		return hwerr(0);
 	return 0;
 }
 #endif
@@ -78,7 +74,8 @@ int hwopen(struct fb *fb)
 	struct hw *hw;
 
 	hw = fb->hw = malloc(sizeof(*hw));
-	RETURN_IF(!hw);
+	if (!hw)
+		return hwerr(0);
 	memset(hw, 0, sizeof(*hw));
 
 	if (!fb->w)
@@ -100,7 +97,8 @@ int hwopen(struct fb *fb)
 	RegisterClass(&wc);
 
 	hw->win = CreateWindowEx(0, "ugl", "", WS_POPUP, 0, 0, fb->w, fb->h, 0, 0, wc.hInstance, 0);
-	RETURN_IF(!hw->win);
+	if (!hw->win)
+		return hwerr(0);
 
 	ShowWindow(hw->win, SW_NORMAL);
 	UpdateWindow(hw->win);
@@ -110,7 +108,8 @@ int hwopen(struct fb *fb)
 	HRESULT rc;
 
 	hw->d3d = Direct3DCreate9(D3D_SDK_VERSION);
-	RETURN_IF(!hw->d3d);
+	if (!hw->d3d)
+		return hwerr(0);
 
 	hw->presentation.BackBufferWidth = fb->w;
 	hw->presentation.BackBufferHeight = fb->h;
@@ -127,37 +126,51 @@ int hwopen(struct fb *fb)
 #endif
 	DWORD flags = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 
-	rc = IDirect3D9_CreateDevice(hw->d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hw->win, flags, &hw->presentation, &hw->device);
-	RETURN_IF_FAILED(rc);
+	rc = IDirect3D9_CreateDevice(hw->d3d, D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL,
+				     hw->win, flags, &hw->presentation, &hw->device);
+	if (FAILED(rc))
+		return hwerr(rc);
 
 #elif HAVE_DDRAW
 	HRESULT rc;
 
 	rc = DirectDrawCreate(0, &hw->ddraw, 0);
-	RETURN_IF_FAILED(rc);
+	if (FAILED(rc))
+		return hwerr(rc);
 
-	rc = IDirectDraw_SetCooperativeLevel(hw->ddraw, hw->win, DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE);
-	RETURN_IF_FAILED(rc);
+	rc = IDirectDraw_SetCooperativeLevel(hw->ddraw, hw->win,
+					     DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE);
+	if (FAILED(rc))
+		return hwerr(rc);
 
 	rc = IDirectDraw_SetDisplayMode(hw->ddraw, fb->w, fb->h, 32);
-	RETURN_IF_FAILED(rc);
+	if (FAILED(rc))
+		return hwerr(rc);
 
 	hw->surfacedesc.dwSize = sizeof(hw->surfacedesc);
 	hw->surfacedesc.dwFlags = DDSD_CAPS;
 	hw->surfacedesc.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 	rc = IDirectDraw_CreateSurface(hw->ddraw, &hw->surfacedesc, &hw->surface, 0);
-	RETURN_IF_FAILED(rc);
+	if (FAILED(rc))
+		return hwerr(rc);
 
 	DDPIXELFORMAT fmt = {0};
 	fmt.dwSize = sizeof(fmt);
 	rc = IDirectDrawSurface_GetPixelFormat(hw->surface, &fmt);
-	RETURN_IF_FAILED(rc);
-	RETURN_IF(!(fmt.dwFlags & DDPF_RGB));
-	RETURN_IF(fmt.dwRGBBitCount != 32);
-	RETURN_IF(fmt.dwRBitMask != 0xff0000 || fmt.dwGBitMask != 0xff00 || fmt.dwBBitMask != 0xff);
+	if (FAILED(rc))
+		return hwerr(rc);
+	if (!(fmt.dwFlags & DDPF_RGB))
+		return hwerr(0);
+	if (fmt.dwRGBBitCount != 32)
+		return hwerr(0);
+	if (fmt.dwRBitMask != 0xff0000 ||
+	    fmt.dwGBitMask != 0x00ff00 ||
+	    fmt.dwBBitMask != 0x0000ff);
+	return hwerr(0);
 #else
 	hw->hdc = CreateCompatibleDC(NULL);
-	RETURN_IF(!hw->hdc);
+	if (!hw->hdc)
+		return hwerr(0);
 
 	BITMAPINFO bitmapinfo = {0};
 	bitmapinfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -171,10 +184,12 @@ int hwopen(struct fb *fb)
 	bitmapinfo.bmiHeader.biClrImportant = 256;
 
 	hw->bitmap = CreateDIBSection(hw->hdc, &bitmapinfo, DIB_RGB_COLORS, (void **)&fb->pixbuf, NULL, 0);
-	RETURN_IF(!hw->bitmap || !fb->pixbuf);
+	if (!hw->bitmap || !fb->pixbuf)
+		return hwerr(0);
 
 	hw->gdiobj = SelectObject(hw->hdc, hw->bitmap);
-	RETURN_IF(!hw->gdiobj || hw->gdiobj == HGDI_ERROR);
+	if (!hw->gdiobj || hw->gdiobj == HGDI_ERROR)
+		return hwerr(0);
 
 	fb->pitch = fb->w;
 #endif
@@ -228,19 +243,22 @@ int hwlock(struct fb *fb)
 				hw->backbuf = NULL;
 			}
 			rc = IDirect3DDevice9_Reset(hw->device, &hw->presentation);
-			RETURN_IF_FAILED(rc);
+			if (FAILED(rc))
+				return hwerr(rc);
 		}
 		else
 			return -1;
 	}
 	if (!hw->backbuf) {
 		IDirect3DDevice9_GetBackBuffer(hw->device, 0, 0, D3DBACKBUFFER_TYPE_MONO, &hw->backbuf);
-		RETURN_IF(!hw->backbuf);
+		if (!hw->backbuf)
+			return hwerr(0);
 	}
 
 	D3DLOCKED_RECT lock;
 	rc = IDirect3DSurface9_LockRect(hw->backbuf, &lock, NULL, D3DLOCK_NOSYSLOCK);
-	RETURN_IF_FAILED(rc);
+	if (FAILED(rc))
+		return hwerr(rc);
 	fb->pixbuf = lock.pBits;
 	fb->pitch = lock.Pitch/sizeof(*fb->pixbuf);
 #elif HAVE_DDRAW
@@ -256,7 +274,8 @@ int hwlock(struct fb *fb)
 	IDirectDraw_WaitForVerticalBlank(hw->ddraw, DDWAITVB_BLOCKBEGIN, 0);
 #endif
 	rc = IDirectDrawSurface_Lock(hw->surface, 0, &hw->surfacedesc, DDLOCK_NOSYSLOCK, 0);
-	RETURN_IF_FAILED(rc);
+	if (FAILED(rc))
+		return hwerr(rc);
 
 	fb->pixbuf = hw->surfacedesc.lpSurface;
 	if (hw->surfacedesc.dwFlags & DDSD_PITCH)
@@ -276,7 +295,8 @@ int hwunlock(struct fb *fb)
 	IDirect3DSurface9_UnlockRect(hw->backbuf);
 
 	rc = IDirect3DDevice9_Present(hw->device, NULL, NULL, hw->win, NULL);
-	RETURN_IF_FAILED(rc);
+	if (FAILED(rc))
+		return hwerr(rc);
 #elif HAVE_DDRAW
 	IDirectDrawSurface_Unlock(hw->surface, 0);
 #else
