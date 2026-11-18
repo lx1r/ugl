@@ -24,8 +24,14 @@ static inline int clamp(int a, int lower, int upper)
 static inline float fclamp(float a, float lower, float upper, float *clamped)
 {
 	float c = fmaxf(lower, fminf(a, upper));
-	if (clamped) *(clamped) = (a != c);
+	if (clamped) *(clamped) = -(a != c);
 	return c;
+}
+
+static inline float fblend(float a, float b, float flag)
+{
+	int mask = (int)flag >> 31; /* extend signed bit */
+	return ((int)b & mask) | ((int)a & ~mask);
 }
 
 /* pseudo-random number helpers */
@@ -213,17 +219,37 @@ typedef struct { float x, y; } vec2;
 
 #define vec2(x, y) (vec2){x, y}
 
-#define v2add(a, b) (typeof((a))){(a).x + (b).x, (a).y + (b).y}
-#define v2sub(a, b) (typeof((a))){(a).x - (b).x, (a).y - (b).y}
-#define v2len(a) (sqrtf((a).x*(a).x + (a).y*(a).y))
-#define v2dot(a, b) ((a).x*(b).x + (a).y*(b).y)
+static inline vec2 v2add(vec2 a, vec2 b)
+{
+	return vec2(a.x + b.x, a.y + b.y);
+}
 
-#define v2mask(a, b, mask) (typeof((a))){(mask).x ? (b).x : (a).x, (mask).y ? (b).y : (a).y}
-#define v2clamp(a, min, max, clamped) (typeof((a))){fclamp((a).x, (min).x, (max).x, (&(clamped)->x)), fclamp((a).y, (min).y, (max).y, &((clamped)->y))}
-#define v2rand(a, b) (vec2){frand2(a.x, b.x), frand2(a.y, b.y)}
+static inline float v2dot(vec2 a, vec2 b)
+{
+	return a.x*b.x + a.y*b.y;
+}
 
-typedef struct { float x, y, z; } vec3;
+static inline float v2len(vec2 a)
+{
+	return sqrtf(a.x*a.x + a.y*a.y);
+}
 
-#define vec3(x, y, z) (vec3){x, y, z}
+static inline vec2 v2clamp(vec2 a, vec2 lower, vec2 upper, vec2 *clamped)
+{
+	return vec2(fclamp(a.x, lower.x, upper.x, &clamped->x),
+		    fclamp(a.y, lower.y, upper.y, &clamped->y));
+}
+
+static inline vec2 v2blend(vec2 a, vec2 b, vec2 mask)
+{
+	return vec2(fblend(a.x, b.x, mask.x),
+		    fblend(a.y, b.y, mask.y));
+}
+
+static inline vec2 v2rand(vec2 lower, vec2 upper)
+{
+	return vec2(frand2(lower.x, upper.x),
+		    frand2(lower.y, upper.y));
+}
 
 #endif

@@ -24,7 +24,7 @@ int main()
 	vec2 vub = vec2(20, 20);
 	vec2 alb = vec2(-1, -1);
 	vec2 aub = vec2(1, 1);
-	vec2 mask;
+	vec2 clamped;
 
 	cls(blob);
 	for (i = 0; i < rad; i++)
@@ -40,10 +40,10 @@ int main()
 	while (!fbread(fb)) {
 		cls(vfb);
 		for (i = 0; i < BLOBS; i++) {
-			b[i].vel = v2clamp(v2add(b[i].vel, b[i].acc), vlb, vub, &mask);
-			b[i].acc = v2mask(b[i].acc, v2rand(alb, aub), mask);
-			b[i].pos = v2clamp(v2add(b[i].pos, b[i].vel), plb, pub, &mask);
-			b[i].vel = v2mask(b[i].vel, v2rand(vlb, vub), mask);
+			b[i].vel = v2clamp(v2add(b[i].vel, b[i].acc), vlb, vub, &clamped);
+			b[i].acc = v2blend(b[i].acc, v2rand(alb, aub), clamped);
+			b[i].pos = v2clamp(v2add(b[i].pos, b[i].vel), plb, pub, &clamped);
+			b[i].vel = v2blend(b[i].vel, v2rand(vlb, vub), clamped);
 			blit(vfb, (int)b[i].pos.x - rad, (int)b[i].pos.y - rad, blob, padd);
 		}
 		blit(fb, 0, 0, vfb, pmov);

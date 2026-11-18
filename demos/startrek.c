@@ -8,13 +8,18 @@
 #define ZMAX 15
 #define SPEED 0.1f
 
-vec3 star(int w, int h, int zmin)
+struct star {
+	float x, y, z;
+};
+
+struct star star(int w, int h, int zmin)
 {
 	float a = frand()*2*M_PI;
 	float rx = frand2(w/10, w*4);
 	float ry = frand2(h/10, h*4);
 
-	return vec3(rx*cosf(a), ry*sinf(a), frand2(zmin, ZMAX));
+	return (struct star){
+		rx*cosf(a), ry*sinf(a), frand2(zmin, ZMAX)};
 }
 
 int main()
@@ -23,7 +28,7 @@ int main()
 	struct fb *fb = fbopen(0, 0);
 	struct fb *vfb = vfballoc(fb->w, fb->h);
 	int nr = fb->w;
-	vec3 stars[nr];
+	struct star stars[nr];
 
 	for (i = 0; i < N; i++)
 		stars[i] = star(fb->w, fb->h, 2);
