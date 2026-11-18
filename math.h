@@ -231,7 +231,7 @@ static inline float v2dot(vec2 a, vec2 b)
 
 static inline float v2len(vec2 a)
 {
-	return sqrtf(a.x*a.x + a.y*a.y);
+	return sqrtf(v2dot(a, a));
 }
 
 static inline vec2 v2clamp(vec2 a, vec2 lower, vec2 upper, vec2 *clamped)
