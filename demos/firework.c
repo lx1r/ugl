@@ -57,11 +57,11 @@ void draw_firework(struct fb *vfb, struct firework *f)
 	for (i = 0; i < PARTICLES; i++) {
 		f->pt[i].vel = v2add(f->pt[i].vel, f->pt[i].acc);
 		f->pt[i].pos = v2clamp(v2add(f->pt[i].pos, f->pt[i].vel), plb, pub, &mask);
-		if (mask.x < 0 || mask.y < 0) { f->pt[i].sz = 0; continue; }
+		if (mask.x || mask.y) { f->pt[i].sz = 0; continue; }
 		f->pt[i].cl = fclamp(f->pt[i].cl - 0.2f, 0, PALSZ, &flag);
-		if (flag < 0) continue;
+		if (flag) continue;
 		f->pt[i].sz = fclamp(f->pt[i].sz - 0.03f, 1, 5, &flag);
-		if (flag < 0) continue;
+		if (flag) continue;
 		spot(vfb, (int)f->pt[i].pos.x, (int)f->pt[i].pos.y, (int)f->pt[i].sz, f->palette[(int)f->pt[i].cl]);
 	}
 }

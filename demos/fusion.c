@@ -82,9 +82,9 @@ int main()
 			for (i = 0; i < NX; i++) {
 				float clamped;
 				grid[i][j].vel = fclamp(grid[i][j].vel + grid[i][j].acc, VLB, VUB, &clamped);
-				if (clamped < 0) grid[i][j].acc = frand2(ALB, AUB);
+				if (clamped) grid[i][j].acc = frand2(ALB, AUB);
 				grid[i][j].cl = fclamp(grid[i][j].cl + grid[i][j].vel, CLB, CUB, &clamped);
-				if (clamped < 0) grid[i][j].vel = frand2(VLB, VUB);
+				if (clamped) grid[i][j].vel = frand2(VLB, VUB);
 				putpixel(vfb, x[i], y[j], palette[(int)grid[i][j].cl]);
 			}
 		}

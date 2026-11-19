@@ -20,7 +20,7 @@ int main()
 	vec2 plb, pub;
 	vec2 vlb = vec2(VLB, VLB);
 	vec2 vub = vec2(VUB, VUB);
-	vec2 clamped;
+	vec2 hit;
 
 	fb = fbopen(0, 0);
 	vfb = vfballoc(fb->w, fb->h);
@@ -37,10 +37,10 @@ int main()
 	while (!fbread(fb)) {
 
 		for (i = 0; i < N; i++) {
-			p[i].pos = v2clamp(v2add(p[i].pos, p[i].vel), plb, pub, &clamped);
-			p[i].vel = v2blend(p[i].vel, vec2(-p[i].vel.x, -p[i].vel.y), clamped);
-			p[i].cl = fclamp(p[i].cl + p[i].dcl, 0, 512, &clamped.x);
-			if (clamped.x < 0) p[i].dcl = -p[i].dcl;
+			p[i].pos = v2clamp(v2add(p[i].pos, p[i].vel), plb, pub, &hit);
+			p[i].vel = v2blend(p[i].vel, vec2(-p[i].vel.x, -p[i].vel.y), hit);
+			p[i].cl = fclamp(p[i].cl + p[i].dcl, 0, 512, &hit.x);
+			if (hit.x) p[i].dcl = -p[i].dcl;
 		}
 		blur(vfb, 1, 1, vfb);
 

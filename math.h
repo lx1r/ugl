@@ -21,10 +21,10 @@ static inline int clamp(int a, int lower, int upper)
 	return max(lower, min(a, upper));
 }
 
-static inline float fclamp(float a, float lower, float upper, float *clamped)
+static inline float fclamp(float a, float lower, float upper, float *flag)
 {
 	float c = fmaxf(lower, fminf(a, upper));
-	if (clamped) *(clamped) = -(a != c);
+	if (flag) *(flag) = -(a != c);
 	return c;
 }
 
@@ -234,10 +234,10 @@ static inline float v2len(vec2 a)
 	return sqrtf(v2dot(a, a));
 }
 
-static inline vec2 v2clamp(vec2 a, vec2 lower, vec2 upper, vec2 *clamped)
+static inline vec2 v2clamp(vec2 a, vec2 lower, vec2 upper, vec2 *mask)
 {
-	return vec2(fclamp(a.x, lower.x, upper.x, &clamped->x),
-		    fclamp(a.y, lower.y, upper.y, &clamped->y));
+	return vec2(fclamp(a.x, lower.x, upper.x, &mask->x),
+		    fclamp(a.y, lower.y, upper.y, &mask->y));
 }
 
 static inline vec2 v2blend(vec2 a, vec2 b, vec2 mask)
