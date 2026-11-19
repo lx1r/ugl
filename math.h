@@ -32,6 +32,7 @@ static inline float fclamp(float a, float lower, float upper, float *flag)
 	c = fblend(a, lower, a - lower);
 	c = fblend(upper, c, c - upper);
 	if (flag) *(flag) = -(a != c);
+
 	return c;
 }
 
