@@ -40,7 +40,7 @@ int main()
 			p[i].pos = v2clamp(v2add(p[i].pos, p[i].vel), plb, pub, &hit);
 			p[i].vel = v2blend(p[i].vel, vec2(-p[i].vel.x, -p[i].vel.y), hit);
 			p[i].cl = fclamp(p[i].cl + p[i].dcl, 0, 512, &hit.x);
-			if (hit.x) p[i].dcl = -p[i].dcl;
+			p[i].dcl = fblend(p[i].dcl, -p[i].dcl, hit.x);
 		}
 		blur(vfb, 1, 1, vfb);
 

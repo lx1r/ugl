@@ -16,7 +16,7 @@
 color palette[CUB + 1];
 
 struct {
-	float cl;
+	float col;
 	float vel;
 	float acc;
 } grid[NX][NY];
@@ -63,10 +63,10 @@ int main()
 
 	for (j = 0; j < NY; j++) {
 		for (i = 0; i < NX; i++) {
-			grid[i][j].cl = frand2(CLB, CUB);
+			grid[i][j].col = frand2(CLB, CUB);
 			grid[i][j].vel = frand2(VLB, VUB);
 			grid[i][j].acc = frand2(ALB, AUB);
-			putpixel(vfb, x[i], y[j], palette[(int)grid[i][j].cl]);
+			putpixel(vfb, x[i], y[j], palette[(int)grid[i][j].col]);
 		}
 	}
 
@@ -82,10 +82,10 @@ int main()
 			for (i = 0; i < NX; i++) {
 				float clamped;
 				grid[i][j].vel = fclamp(grid[i][j].vel + grid[i][j].acc, VLB, VUB, &clamped);
-				if (clamped) grid[i][j].acc = frand2(ALB, AUB);
-				grid[i][j].cl = fclamp(grid[i][j].cl + grid[i][j].vel, CLB, CUB, &clamped);
-				if (clamped) grid[i][j].vel = frand2(VLB, VUB);
-				putpixel(vfb, x[i], y[j], palette[(int)grid[i][j].cl]);
+				grid[i][j].acc = fblend(grid[i][j].acc, frand2(ALB, AUB), clamped);
+				grid[i][j].col = fclamp(grid[i][j].col + grid[i][j].vel, CLB, CUB, &clamped);
+				grid[i][j].vel = fblend(grid[i][j].vel, frand2(VLB, VUB), clamped);
+				putpixel(vfb, x[i], y[j], palette[(int)grid[i][j].col]);
 			}
 		}
 	}

@@ -4,6 +4,8 @@
 #include <math.h>
 #include <stdlib.h>
 
+/* restrict a value to within a range */
+
 static inline int min(int a, int b)
 {
 	return b + ((a - b) & ((a - b) >> 31));
@@ -14,24 +16,23 @@ static inline int max(int a, int b)
 	return a - ((a - b) & ((a - b) >> 31));
 }
 
-/* restrict a value to within a range */
-
 static inline int clamp(int a, int lower, int upper)
 {
 	return max(lower, min(a, upper));
 }
 
-static inline float fclamp(float a, float lower, float upper, float *flag)
-{
-	float c = fmaxf(lower, fminf(a, upper));
-	if (flag) *(flag) = -(a != c);
-	return c;
-}
-
 static inline float fblend(float a, float b, float flag)
 {
-	int mask = (int)flag >> 31; /* extend signed bit */
-	return ((int)b & mask) | ((int)a & ~mask);
+	return flag >= 0 ? a : b;
+}
+
+static inline float fclamp(float a, float lower, float upper, float *flag)
+{
+	float c;
+	c = fblend(a, lower, a - lower);
+	c = fblend(upper, c, c - upper);
+	if (flag) *(flag) = -(a != c);
+	return c;
 }
 
 /* pseudo-random number helpers */
