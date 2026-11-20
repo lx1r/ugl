@@ -8,12 +8,12 @@
 
 static inline int min(int a, int b)
 {
-	return b + ((a - b) & ((a - b) >> 31));
+	return a < b ? a : b; /* cmp/cmovle */
 }
 
 static inline int max(int a, int b)
 {
-	return a - ((a - b) & ((a - b) >> 31));
+	return a > b ? a : b; /* cmp/cmovle */
 }
 
 static inline int clamp(int a, int lower, int upper)
@@ -21,19 +21,17 @@ static inline int clamp(int a, int lower, int upper)
 	return max(lower, min(a, upper));
 }
 
-static inline float fblend(float a, float b, float flag)
-{
-	return flag >= 0 ? a : b;
-}
-
 static inline float fclamp(float a, float lower, float upper, float *flag)
 {
-	float c;
-	c = fblend(a, lower, a - lower);
-	c = fblend(upper, c, c - upper);
-	if (flag) *(flag) = -(a != c);
+	float c = fmaxf(lower, fminf(a, upper));
+	*(flag) = -(a != c);
 
 	return c;
+}
+
+static inline float fblend(float a, float b, float flag)
+{
+	return flag >= 0 ? a : b; /* ((xmm & ~mask) | (xmm & mask)) */
 }
 
 /* pseudo-random number helpers */
