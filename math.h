@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-/* restrict a value to within a range */
+/* restrict a value within a range */
 
 static inline int min(int a, int b)
 {
@@ -13,17 +13,17 @@ static inline int min(int a, int b)
 
 static inline int max(int a, int b)
 {
-	return a > b ? a : b; /* cmp/cmovle */
+	return a > b ? a : b; /* cmp/cmovge */
 }
 
-static inline int clamp(int a, int lower, int upper)
+static inline int clamp(int a, int lo, int hi)
 {
-	return max(lower, min(a, upper));
+	return max(lo, min(a, hi));
 }
 
-static inline float fclamp(float a, float lower, float upper, float *flag)
+static inline float fclamp(float a, float lo, float hi, float *flag)
 {
-	float c = fmaxf(lower, fminf(a, upper));
+	float c = fmaxf(lo, fminf(a, hi));
 	*(flag) = -(a != c);
 
 	return c;
@@ -31,14 +31,14 @@ static inline float fclamp(float a, float lower, float upper, float *flag)
 
 static inline float fblend(float a, float b, float flag)
 {
-	return flag >= 0 ? a : b; /* ((xmm & ~mask) | (xmm & mask)) */
+	return flag >= 0 ? a : b; /* ((xmma & ~mask) | (xmmb & mask)) */
 }
 
 /* pseudo-random number helpers */
 
-static inline int rand2(int lower, int upper)
+static inline int rand2(int lo, int hi)
 {
-	return lower + rand()%(upper - lower + 1); /* [lower, upper] */
+	return lo + rand()%(hi - lo + 1); /* [lo, hi] */
 }
 
 static inline float frand()
@@ -46,9 +46,9 @@ static inline float frand()
 	return rand()/(float)RAND_MAX; /* [0.0, 1.0] */
 }
 
-static inline float frand2(float lower, float upper)
+static inline float frand2(float lo, float hi)
 {
-	return lower + frand()*(upper - lower); /* [lower, upper] */
+	return lo + frand()*(hi - lo); /* [lo, hi] */
 }
 
 /* fixed-point arithmetic */
@@ -234,10 +234,10 @@ static inline float v2len(vec2 a)
 	return sqrtf(v2dot(a, a));
 }
 
-static inline vec2 v2clamp(vec2 a, vec2 lower, vec2 upper, vec2 *mask)
+static inline vec2 v2clamp(vec2 a, vec2 lo, vec2 hi, vec2 *mask)
 {
-	return vec2(fclamp(a.x, lower.x, upper.x, &mask->x),
-		    fclamp(a.y, lower.y, upper.y, &mask->y));
+	return vec2(fclamp(a.x, lo.x, hi.x, &mask->x),
+		    fclamp(a.y, lo.y, hi.y, &mask->y));
 }
 
 static inline vec2 v2blend(vec2 a, vec2 b, vec2 mask)
@@ -246,10 +246,10 @@ static inline vec2 v2blend(vec2 a, vec2 b, vec2 mask)
 		    fblend(a.y, b.y, mask.y));
 }
 
-static inline vec2 v2rand(vec2 lower, vec2 upper)
+static inline vec2 v2rand(vec2 lo, vec2 hi)
 {
-	return vec2(frand2(lower.x, upper.x),
-		    frand2(lower.y, upper.y));
+	return vec2(frand2(lo.x, hi.x),
+		    frand2(lo.y, hi.y));
 }
 
 #endif
