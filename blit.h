@@ -28,6 +28,7 @@ do {\
 	fbunlock(dst);\
 } while (0)
 
+__attribute__((always_inline)) /* force 'rop' inline */
 static inline void blit(struct fb *dst, int x0, int y0, struct fb *src,
 			pixel (*rop)(pixel, pixel))
 {
