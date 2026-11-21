@@ -15,15 +15,15 @@ do {\
 	h = min(h0, h1);\
 	\
 	if (fblock(dst)) break;\
-	p0 = (dst)->pixbuf + y0*(dst)->pitch + x0;\
-	p1 = (src)->pixbuf + y1*(src)->pitch + x1;\
+	p0 = dst->pixbuf + y0*dst->pitch + x0;\
+	p1 = src->pixbuf + y1*src->pitch + x1;\
 	for (y = 0; y < h; y++) {\
 		for (x = 0; x < w; x++) {\
 			*p0 = ROP;\
 			p0++; p1++;\
 		}\
-		p0 += (dst)->pitch - w;\
-		p1 += (src)->pitch - w;\
+		p0 += dst->pitch - w;\
+		p1 += src->pitch - w;\
 	}\
 	fbunlock(dst);\
 } while (0)
